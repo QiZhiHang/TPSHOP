@@ -196,6 +196,7 @@ class UsersLogic extends Model
         }
 
         if(check_mobile($username)){
+            //var_dump($username);die;
             $is_validated = 1;
             $map['mobile_validated'] = 1;
             $map['nickname'] = $map['mobile'] = $username; //手机注册

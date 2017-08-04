@@ -136,6 +136,7 @@ class Api extends Base {
             }
             //判断是否存在验证码
             $data = M('sms_log')->where(array('mobile'=>$mobile,'session_id'=>$session_id, 'status'=>1))->order('id DESC')->find();
+            
             //获取时间配置
             $sms_time_out = tpCache('sms.sms_time_out');
             $sms_time_out = $sms_time_out ? $sms_time_out : 120;
@@ -161,7 +162,7 @@ class Api extends Base {
                 }
             }
             $params['code'] =$code;
-            
+            //dump($session_id);die;
             //发送短信
             $resp = sendSms($scene , $mobile , $params, $session_id);
 

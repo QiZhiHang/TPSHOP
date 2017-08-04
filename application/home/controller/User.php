@@ -28,6 +28,7 @@ class User extends Base{
 	
     public function _initialize() {      
         parent::_initialize();
+        //dump(session('?user'));die;
         if(session('?user'))
         {
         	$user = session('user');
@@ -171,7 +172,9 @@ class User extends Base{
         }
         $reg_sms_enable = tpCache('sms.regis_sms_enable');
         $reg_smtp_enable = tpCache('smtp.regis_smtp_enable');
+
         if(IS_POST){
+            //dump($_POST);die;
             $logic = new UsersLogic();
             //验证码检验
 //            $this->verifyHandle('user_reg');
@@ -186,12 +189,15 @@ class User extends Base{
                     //手机功能没关闭
                     $check_code = $logic->check_validate_code($code, $username, 'phone', $session_id, $scene);
                     if($check_code['status'] != 1){
+                        var_dump($check_code['msg']);die;
                         $this->error($check_code['msg']);
                     }
                 }else{
+                    var_dump(333);die;
                     $this->verifyHandle('user_reg');
                 }
             }
+
             if(check_email($username)){
                 if($reg_smtp_enable){        //是否开启注册邮箱验证码机制
                     //邮件功能未关闭
@@ -204,6 +210,7 @@ class User extends Base{
                 }
             }
             $data = $logic->reg($username,$password,$password2);
+          
             if($data['status'] != 1){
                 $this->ajaxReturn($data);
             }
@@ -219,10 +226,13 @@ class User extends Base{
             $this->ajaxReturn($data);
             exit;
         }
+        //dump(tpCache('sms.regis_sms_enable'));die;
         $this->assign('regis_sms_enable',tpCache('sms.regis_sms_enable')); // 注册启用短信：
         $this->assign('regis_smtp_enable',tpCache('smtp.regis_smtp_enable')); // 注册启用邮箱：
         $sms_time_out = tpCache('sms.sms_time_out')>0 ? tpCache('sms.sms_time_out') : 120;
+
         $this->assign('sms_time_out', $sms_time_out); // 手机短信超时时间
+       
         return $this->fetch();
     }
 

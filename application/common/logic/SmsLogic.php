@@ -62,15 +62,20 @@ class SmsLogic
         //提取发送短信内容
         $scenes = C('SEND_SCENE');
         $msg = $scenes[$scene][1];
+        //var_dump($msg);die;
         $params_arr = json_decode($smsParam);
+        //var_dump($params_arr);die;
         foreach ($params_arr as $k => $v) {
             $msg = str_replace('${' . $k . '}', $v, $msg);
         }
 
         //发送记录存储数据库
         $log_id = M('sms_log')->insertGetId(array('mobile' => $sender, 'code' => $code, 'add_time' => time(), 'session_id' => $session_id, 'status' => 0, 'scene' => $scene, 'msg' => $msg));
+
         if($sender<>'' && check_mobile($sender)){//如果是正常的手机号码才发送
+            //dump(check_mobile($sender));die;
             $resp = $this->realSendSms($sender, $smsTemp['sms_sign'], $smsParam, $smsTemp['sms_tpl_code']);
+            //var_dump($resp);die;
             if ($resp['status'] == 1) {
                 M('sms_log')->where(array('id' => $log_id))->save(array('status' => 1)); //修改发送状态为成功
             }else{
@@ -82,10 +87,16 @@ class SmsLogic
         }
         
     }
+        /*
+            @$mobile 需要发送的手机号
+            @$smsSign 发送的名称
+            @$smsParam 
 
+        */
     private function realSendSms($mobile, $smsSign, $smsParam, $templateCode)
     {
         $type = (int)$this->config['sms_platform'] ?: 0;
+        //var_dump($type);die;
         switch($type) {
             case 0:
                 $result = $this->sendSmsByAlidayu($mobile, $smsSign, $smsParam, $templateCode);
@@ -93,11 +104,56 @@ class SmsLogic
             case 1:
                 $result = $this->sendSmsByAliyun($mobile, $smsSign, $smsParam, $templateCode);
                 break;
+            case 2:
+                $result = $this->sendMymessage($mobile,$smsSign, $smsParam, $templateCode);
+                break;
             default:
                 $result = ['status' => -1, 'msg' => '不支持的短信平台'];
         }
         
         return $result;
+    }
+
+    /*
+        发送短信
+    */
+
+    private function sendMymessage($mobile,$smsSign,$content,$types){
+
+        $url="http://service.winic.org:8009/sys_port/gateway/index.asp?";
+        $data = "id=%s&pwd=%s&to=%s&content=%s&time=";
+        $id = iconv("UTF-8","GB2312",'圣合天下');
+        $pwd = '12345678';
+        $to = $mobile;
+        $msga = M('sms_template')->where(['sms_tpl_code'=>$types])->field('tpl_content')->find();
+        $msg = $msga['tpl_content'];
+        //var_dump($msg);die;
+        $params_arr = json_decode($content);
+        //var_dump($params_arr);die;
+        foreach ($params_arr as $k => $v) {
+            $msg = str_replace('${' . $k . '}', $v, $msg);
+        }
+        var_dump($msg);die;
+        $content = iconv("UTF-8","GB2312",$msg);
+        $rdata = sprintf($data, $id, $pwd, $to, $content);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_POST,1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS,$rdata);
+        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $return_arr = explode('/', $result);
+         //var_dump($return_arr);die;
+        if (!empty($return_arr) && $return_arr[0] == '000') {
+           return array('status' => 1, 'msg' => '已发送');
+          
+        }else{
+          return false;
+
+          var_dump(2222);
+        }
+
     }
     
     /**
